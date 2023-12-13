@@ -15,3 +15,10 @@ def test_allocates_line_to_earliest_batch():
     allocate(line, [middle, earliest, latest])
 
     assert earliest.available_quantity == 90
+
+
+# allocates to current stock batches over shipment batches
+
+# allocate returns batch ref of the batch allocated to
+
+# raised out of stock exception if cannot allocate
