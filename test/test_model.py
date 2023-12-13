@@ -53,3 +53,22 @@ def test_attempting_to_allocate_second_time_doesnt_reduce_available_quantity():
     batch.allocate(line)
 
     assert batch.available_quantity == 18
+
+
+def test_deallocating_line_from_batch_reduces_quantity():
+    batch, line = make_batch_and_line("SMALL-TABLE", 20, 2)
+
+    batch.allocate(line)
+    batch.deallocate(line)
+
+    assert batch.available_quantity == 20
+
+
+def test_can_only_deallocate_allocated_lines():
+    batch, line_1 = make_batch_and_line("SMALL-TABLE", 20, 2)
+    line_2 = OrderLine("BLUE-CUSHION", 2)
+
+    batch.allocate(line_1)
+    batch.deallocate(line_2)
+
+    assert batch.available_quantity == 18
