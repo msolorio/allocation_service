@@ -1,19 +1,55 @@
 from model.model import Batch, OrderLine
 
 
-def test_allocating_line_to_batch_decrements_batch_quantity():
-    batch = Batch(ref="batch-ref", sku="SMALL-TABLE", qty=20)
-    order_line = OrderLine(sku="SMALL-TABLE", qty=2)
+def make_batch_and_line(sku, batch_qty, line_qty):
+    return (Batch("batch-ref", sku, batch_qty), OrderLine(sku, line_qty))
 
-    batch.allocate(order_line)
+
+def test_allocating_line_to_batch_decreases_batch_quantity():
+    batch, line = make_batch_and_line("SMALL-TABLE", 20, 2)
+
+    batch.allocate(line)
 
     assert batch.available_quantity == 18
 
 
-def test_cannot_allocate_line_to_batch_if_not_enough_available_quantity():
-    batch = Batch(ref="batch-ref", sku="BLUE-CUSHION", qty=1)
-    order_line = OrderLine(sku="BLUE-CUSHION", qty=2)
+def test_can_allocate_if_batch_quantity_greater_than_line_quantity():
+    large_batch, small_line = make_batch_and_line("SMALL-TABLE", 20, 2)
 
-    batch.allocate(order_line)
+    assert large_batch.can_allocate(small_line)
 
-    assert batch.available_quantity == 1
+
+def test_cannot_allocate_if_batch_quantity_less_than_line_quantity():
+    small_batch, large_line = make_batch_and_line("SMALL-TABLE", 2, 20)
+
+    assert small_batch.can_allocate(large_line) is False
+
+
+def test_can_allocate_if_batch_quantity_equal_to_line_quantity():
+    batch, line = make_batch_and_line("SMALL-TABLE", 20, 20)
+
+    assert batch.can_allocate(line)
+
+
+def test_cannot_allocate_if_skus_dont_match():
+    batch = Batch("batch-ref", "SMALL-TABLE", 20)
+    line = OrderLine("BLUE-CUSHION", 20)
+
+    assert batch.can_allocate(line) is False
+
+
+def test_cannot_allocate_a_line_to_a_batch_more_than_once():
+    batch, line = make_batch_and_line("SMALL-TABLE", 20, 2)
+
+    batch.allocate(line)
+
+    assert batch.can_allocate(line) is False
+
+
+def test_attempting_to_allocate_second_time_doesnt_reduce_available_quantity():
+    batch, line = make_batch_and_line("SMALL-TABLE", 20, 2)
+
+    batch.allocate(line)
+    batch.allocate(line)
+
+    assert batch.available_quantity == 18
