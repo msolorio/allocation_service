@@ -2,7 +2,7 @@ from model.model import Batch, OrderLine
 
 
 def make_batch_and_line(sku, batch_qty, line_qty):
-    return (Batch("batch-ref", sku, batch_qty), OrderLine(sku, line_qty))
+    return (Batch("batch-ref", sku, batch_qty), OrderLine("order-ref", sku, line_qty))
 
 
 def test_allocating_line_to_batch_decreases_batch_quantity():
@@ -33,7 +33,7 @@ def test_can_allocate_if_batch_quantity_equal_to_line_quantity():
 
 def test_cannot_allocate_if_skus_dont_match():
     batch = Batch("batch-ref", "SMALL-TABLE", 20)
-    line = OrderLine("BLUE-CUSHION", 20)
+    line = OrderLine("order-ref", "BLUE-CUSHION", 20)
 
     assert batch.can_allocate(line) is False
 
@@ -66,7 +66,7 @@ def test_deallocating_line_from_batch_reduces_quantity():
 
 def test_can_only_deallocate_allocated_lines():
     batch, line_1 = make_batch_and_line("SMALL-TABLE", 20, 2)
-    line_2 = OrderLine("BLUE-CUSHION", 2)
+    line_2 = OrderLine("order-ref", "BLUE-CUSHION", 2)
 
     batch.allocate(line_1)
     batch.deallocate(line_2)
