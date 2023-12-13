@@ -5,7 +5,8 @@ class Batch:
         self.available_quantity = qty
 
     def allocate(self, line):
-        self.available_quantity -= line.quantity
+        if self.available_quantity >= line.quantity:
+            self.available_quantity -= line.quantity
 
 
 class OrderLine:
