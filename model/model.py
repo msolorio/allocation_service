@@ -9,6 +9,10 @@ Sku = NewType("Sku", str)
 Reference = NewType("Reference", str)
 
 
+class OutOfStock(Exception):
+    pass
+
+
 @dataclass(frozen=True)
 class OrderLine:
     orderid: Reference
@@ -63,7 +67,10 @@ class Batch:
         return sum(line.qty for line in self.__allocated_lines)
 
 
-def allocate(line: OrderLine, batches: List[Batch]):
-    batch = next(b for b in sorted(batches) if b.can_allocate(line))
-    batch.allocate(line)
-    return batch.ref
+def allocate(line: OrderLine, batches: List[Batch]) -> Reference:
+    try:
+        batch = next(b for b in sorted(batches) if b.can_allocate(line))
+        batch.allocate(line)
+        return batch.ref
+    except StopIteration:
+        raise OutOfStock(f"Out of stock for sku: {line.sku}")
