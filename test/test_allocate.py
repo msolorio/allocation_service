@@ -35,7 +35,7 @@ def test_allocates_to_in_stock_batches_over_shipment_batches():
     shipment_batch = Batch("batch-shipment_batch", "SMALL-TABLE", 100, today)
     line = OrderLine("order-ref", "SMALL-TABLE", 10)
 
-    allocate(line, [in_stock_batch, shipment_batch])
+    allocate(line, [shipment_batch, in_stock_batch])
 
     assert in_stock_batch.available_quantity == 90
     assert shipment_batch.available_quantity == 100
@@ -46,7 +46,7 @@ def test_returns_batch_ref_of_the_batch_allocated_to():
     shipment_batch = Batch("batch-shipment_batch", "SMALL-TABLE", 100, today)
     line = OrderLine("order-ref", "SMALL-TABLE", 10)
 
-    assert allocate(line, [shipment_batch, in_stock_batch]) == in_stock_batch.ref
+    assert allocate(line, [shipment_batch, in_stock_batch]) == in_stock_batch.reference
 
 
 # raised out of stock exception if cannot allocate

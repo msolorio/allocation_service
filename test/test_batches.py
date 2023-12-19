@@ -64,7 +64,7 @@ def test_deallocating_line_from_batch_increased_batch_quantity():
     assert batch.available_quantity == 20
 
 
-def test_can_only_deallocate_allocated_lines():
+def test_can_only_deallocate_allocations():
     batch, line_1 = make_batch_and_line("SMALL-TABLE", 20, 2)
     line_2 = OrderLine("order-ref-2", "SMALL-TABLE", 2)
 
