@@ -18,9 +18,9 @@ batches = Table(
     "batches",
     metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
-    Column("ref", String(255)),
+    Column("reference", String(255)),
     Column("sku", String(255)),
-    Column("_purchased_quantity", String(255)),
+    Column("_purchased_quantity", Integer, nullable=False),
     Column("eta", Date, nullable=True),
 )
 
