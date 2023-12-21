@@ -18,4 +18,4 @@ class SqlAlchemyRepository(AbstractRepository):
         self.session.add(batch)
     
     def get(self, reference: model.Reference) -> model.Batch:
-        pass
+        return self.session.query(model.Batch).filter_by(reference=reference).first()
