@@ -1,6 +1,10 @@
-FROM python:3.13.0a2-bookworm@sha256:7d21d97a3aa0f74d58b48f1b405f13091e7f7fb542f20e16c6a4bcb6a8521ad2
+FROM python:3.9-slim-buster
 
-# RUN apt-get update
+COPY requirements.txt /tmp
+RUN pip install -r /tmp/requirements.txt
 
-# WORKDIR /app
-# COPY . .
+RUN mkdir -p /code
+COPY *.py /code/
+WORKDIR /code
+ENV FLASK_APP=flask_app.py FLASK_DEBUG=1 PYTHONUNBUFFERED=1
+CMD flask run --host=0.0.0.0 --port=80
