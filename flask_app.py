@@ -29,4 +29,6 @@ def allocate_endpoint():
     )
     batchref = model.allocate(orderline, batches)
 
+    session.commit()
+
     return jsonify({"batchref": batchref}), 201

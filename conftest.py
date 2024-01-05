@@ -70,7 +70,8 @@ def restart_api():
 
 @pytest.fixture
 def add_stock(postgres_session):
-    batchrefs_added = set()
+    batch_ids_added = set()
+    skus_added = set()
 
     def _add_stock(batches):
         for ref, sku, qty, eta in batches:
@@ -84,15 +85,15 @@ def add_stock(postgres_session):
                 dict(ref=ref),
             )
 
-            batchrefs_added.add(batch_id)
+            batch_ids_added.add(batch_id)
+            skus_added.add(sku)
 
         postgres_session.commit()
 
     yield _add_stock
 
-    for batchref in batchrefs_added:
-        postgres_session.execute(
-            "DELETE FROM batches WHERE id=:batchref", dict(batchref=batchref)
-        )
+    postgres_session.execute("DELETE FROM allocations WHERE true")
+    postgres_session.execute("DELETE FROM batches WHERE true")
+    postgres_session.execute("DELETE FROM order_lines WHERE true")
 
     postgres_session.commit()

@@ -52,3 +52,32 @@ def test_allocate_returns_201_and_allocated_batch(add_stock):
 
     assert r.status_code == 201
     assert r.json()["batchref"] == earliest_batchref
+
+
+@pytest.mark.usefixtures("restart_api")
+def test_alloate_persists_allocations(add_stock):
+    sku = random_sku()
+    earliest_batchref = random_batchref("earliest")
+    later_batchref = random_batchref("later")
+
+    add_stock(
+        [
+            (earliest_batchref, sku, 10, "2000-01-01"),
+            (later_batchref, sku, 10, "2000-01-02"),
+        ]
+    )
+
+    line_1 = {"orderid": random_orderid("line_1"), "sku": sku, "qty": 10}
+    line_2 = {"orderid": random_orderid("line_2"), "sku": sku, "qty": 10}
+
+    url = config.get_api_url()
+
+    request_1 = requests.post(f"{url}/allocate", json=line_1)
+
+    assert request_1.status_code == 201
+    assert request_1.json()["batchref"] == earliest_batchref
+
+    request_2 = requests.post(f"{url}/allocate", json=line_2)
+
+    assert request_2.status_code == 201
+    assert request_2.json()["batchref"] == later_batchref
