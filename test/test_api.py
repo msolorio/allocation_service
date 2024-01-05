@@ -97,3 +97,15 @@ def test_400_message_out_of_stock(add_stock):
 
     assert r.status_code == 400
     assert r.json()["message"] == f"Out of stock for sku: {sku}"
+
+
+@pytest.mark.usefixtures("restart_api")
+def test_400_message_invalid_sku():
+    unknown_sku = random_sku()
+    line = {"orderid": random_orderid(), "sku": unknown_sku, "qty": 20}
+
+    url = config.get_api_url()
+    r = requests.post(f"{url}/allocate", json=line)
+
+    assert r.status_code == 400
+    assert r.json()["message"] == f"Invalid sku: {unknown_sku}"
