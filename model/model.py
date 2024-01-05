@@ -71,6 +71,8 @@ class Batch:
 
 
 def allocate(line: OrderLine, batches: List[Batch]) -> Reference:
+    print("len(batches) =====>", len(batches))
+
     try:
         batch = next(b for b in sorted(batches) if b.can_allocate(line))
         batch.allocate(line)
