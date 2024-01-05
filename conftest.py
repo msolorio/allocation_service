@@ -50,8 +50,16 @@ def postgres_db():
 @pytest.fixture
 def postgres_session(postgres_db):
     start_mappers()
-    yield sessionmaker(bind=postgres_db)()
+    session = sessionmaker(bind=postgres_db)()
+
+    yield session
+
     clear_mappers()
+
+    session.execute("DELETE FROM allocations WHERE true")
+    session.execute("DELETE FROM batches WHERE true")
+    session.execute("DELETE FROM order_lines WHERE true")
+    session.commit()
 
 
 @pytest.fixture
@@ -91,9 +99,3 @@ def add_stock(postgres_session):
         postgres_session.commit()
 
     yield _add_stock
-
-    postgres_session.execute("DELETE FROM allocations WHERE true")
-    postgres_session.execute("DELETE FROM batches WHERE true")
-    postgres_session.execute("DELETE FROM order_lines WHERE true")
-
-    postgres_session.commit()

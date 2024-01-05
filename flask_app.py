@@ -27,7 +27,10 @@ def allocate_endpoint():
         request.json["sku"],
         request.json["qty"],
     )
-    batchref = model.allocate(orderline, batches)
+    try:
+        batchref = model.allocate(orderline, batches)
+    except model.OutOfStock as e:
+        return jsonify({"message": str(e)}), 400
 
     session.commit()
 
