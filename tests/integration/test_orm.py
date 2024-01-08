@@ -1,4 +1,4 @@
-import model.model as model
+import domain.model as model
 from datetime import date
 
 

@@ -39,6 +39,9 @@ class Batch:
 
         return other.reference == self.reference
 
+    def __hash__(self):  # used for adding objects to a set or dictionary
+        return hash(self.reference)
+
     def __gt__(self, other):
         if self.eta is None:
             return False
