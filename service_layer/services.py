@@ -11,8 +11,9 @@ class InvalidSku(Exception):
 
 
 def allocate(
-    line: model.OrderLine, repo: repository.AbstractRepository, session
+    orderid: str, sku: str, qty: int, repo: repository.AbstractRepository, session
 ) -> str:
+    line = model.OrderLine(orderid, sku, qty)
     batches = repo.list()
     if not is_valid_sku(line.sku, batches):
         raise InvalidSku(f"Invalid sku: {line.sku}")
