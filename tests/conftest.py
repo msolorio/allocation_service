@@ -76,26 +76,26 @@ def restart_api():
     wait_for_webapp_to_come_up()
 
 
-@pytest.fixture
-def add_stock(postgres_session):
-    batch_ids_added = set()
-    skus_added = set()
+# @pytest.fixture
+# def add_stock(postgres_session):
+#     batch_ids_added = set()
+#     skus_added = set()
 
-    def _add_stock(batches):
-        for ref, sku, qty, eta in batches:
-            postgres_session.execute(
-                "INSERT INTO batches (reference, sku, _purchased_quantity, eta) "
-                "VALUES (:ref, :sku, :qty, :eta)",
-                dict(ref=ref, sku=sku, qty=qty, eta=eta),
-            )
-            [[batch_id]] = postgres_session.execute(
-                "SELECT id FROM batches WHERE reference=:ref",
-                dict(ref=ref),
-            )
+#     def _add_stock(batches):
+#         for ref, sku, qty, eta in batches:
+#             postgres_session.execute(
+#                 "INSERT INTO batches (reference, sku, _purchased_quantity, eta) "
+#                 "VALUES (:ref, :sku, :qty, :eta)",
+#                 dict(ref=ref, sku=sku, qty=qty, eta=eta),
+#             )
+#             [[batch_id]] = postgres_session.execute(
+#                 "SELECT id FROM batches WHERE reference=:ref",
+#                 dict(ref=ref),
+#             )
 
-            batch_ids_added.add(batch_id)
-            skus_added.add(sku)
+#             batch_ids_added.add(batch_id)
+#             skus_added.add(sku)
 
-        postgres_session.commit()
+#         postgres_session.commit()
 
-    yield _add_stock
+#     yield _add_stock

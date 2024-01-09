@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from datetime import datetime
 
 import config
 import domain.model as model
@@ -26,11 +27,6 @@ def is_valid_sku(sku, batches):
 def allocate_endpoint():
     session = get_session()
     repo = repository.SqlAlchemyRepository(session)
-    line = model.OrderLine(
-        request.json["orderid"],
-        request.json["sku"],
-        request.json["qty"],
-    )
 
     try:
         batchref = services.allocate(
@@ -45,3 +41,24 @@ def allocate_endpoint():
         return jsonify({"message": str(e)}), 400
 
     return jsonify({"batchref": batchref}), 201
+
+
+@app.route("/add_batch", methods=["POST"])
+def add_batch_endpoint():
+    session = get_session()
+    repo = repository.SqlAlchemyRepository(session)
+
+    eta = request.json["eta"]
+    if eta is not None:
+        eta = datetime.fromisoformat(eta).date()
+
+    services.add_batch(
+        request.json["ref"],
+        request.json["sku"],
+        request.json["qty"],
+        eta,
+        repo,
+        session,
+    )
+
+    return "OK", 201
