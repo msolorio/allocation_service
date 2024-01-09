@@ -13,7 +13,6 @@ class FakeSession:
 
 
 def test_commits():
-    # line = model.OrderLine("o1", "LAMP", 10)
     batch = model.Batch("batch1", "LAMP", 100, "2000-01-01")
     repo = FakeRepository([batch])
     session = FakeSession()
@@ -22,8 +21,14 @@ def test_commits():
     assert session.commited
 
 
+def test_add_batch():
+    repo, session = FakeRepository([]), FakeSession()
+    services.add_batch("b1", "LAMP", 100, "2000-01-01", repo, session)
+    assert repo.get("b1") is not None
+    assert session.commited
+
+
 def test_returns_allocation():
-    # line = model.OrderLine("o1", "LAMP", 10)
     batch = model.Batch("batch1", "LAMP", 100, "2000-01-01")
     repo = FakeRepository([batch])
 
@@ -41,8 +46,6 @@ def test_allocate_saves_allocations():
             model.Batch(later_batchref, sku, 10, "2000-01-02"),
         ]
     )
-    # line1 = model.OrderLine("o1", sku, 10)
-    # line2 = model.OrderLine("o2", sku, 10)
 
     result1 = services.allocate("o1", sku, 10, repo, FakeSession())
     assert result1 == earliest_batchref
@@ -52,7 +55,6 @@ def test_allocate_saves_allocations():
 
 
 def test_invalid_sku():
-    # line = model.OrderLine("o1", "LAMP", 10)
     batch = model.Batch("batch1", "COUCH", 100, "2000-01-01")
     repo = FakeRepository([batch])
 
@@ -62,7 +64,6 @@ def test_invalid_sku():
 
 def test_out_of_stock():
     batch = model.Batch("batch1", "LAMP", 10, "2000-01-01")
-    # line = model.OrderLine("o1", "LAMP", 20)
     repo = FakeRepository([batch])
 
     with pytest.raises(model.OutOfStock):
