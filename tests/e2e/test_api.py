@@ -15,6 +15,7 @@ def add_batch(ref, sku, qty, eta):
     assert r.status_code == 201
 
 
+@pytest.mark.usefixtures("postgres_db")
 @pytest.mark.usefixtures("restart_api")
 def test_allocate_returns_201_and_allocated_batch():
     sku, other_sku = random_sku(), random_sku("other")
@@ -35,6 +36,7 @@ def test_allocate_returns_201_and_allocated_batch():
     assert r.json()["batchref"] == earliest_batchref
 
 
+@pytest.mark.usefixtures("postgres_db")
 @pytest.mark.usefixtures("restart_api")
 def test_400_message_invalid_sku():
     unknown_sku = random_sku()
