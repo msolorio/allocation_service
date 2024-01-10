@@ -8,6 +8,7 @@ import domain.model as model
 import adapters.orm as orm
 import adapters.repository as repository
 import service_layer.services as services
+from service_layer import unit_of_work
 
 orm.start_mappers()
 get_session = sessionmaker(bind=create_engine(config.get_postgres_uri()))
@@ -25,16 +26,12 @@ def is_valid_sku(sku, batches):
 
 @app.route("/allocate", methods=["POST"])
 def allocate_endpoint():
-    session = get_session()
-    repo = repository.SqlAlchemyRepository(session)
-
     try:
         batchref = services.allocate(
             request.json["orderid"],
             request.json["sku"],
             request.json["qty"],
-            repo,
-            session,
+            unit_of_work.SqlAlchemyUnitOfWork(),
         )
 
     except (services.InvalidSku, model.OutOfStock) as e:
@@ -45,9 +42,6 @@ def allocate_endpoint():
 
 @app.route("/add_batch", methods=["POST"])
 def add_batch_endpoint():
-    session = get_session()
-    repo = repository.SqlAlchemyRepository(session)
-
     eta = request.json["eta"]
     if eta is not None:
         eta = datetime.fromisoformat(eta).date()
@@ -57,8 +51,7 @@ def add_batch_endpoint():
         request.json["sku"],
         request.json["qty"],
         eta,
-        repo,
-        session,
+        unit_of_work.SqlAlchemyUnitOfWork(),
     )
 
     return "OK", 201
