@@ -1,5 +1,6 @@
+import pytest
 from service_layer import unit_of_work
-import domain.model as model
+from domain import model
 
 
 def insert_batch(session, ref, sku, qty, eta):
@@ -23,12 +24,12 @@ def get_batchref_allocated_to(session, orderid, sku):
     return batchref
 
 
-def test_uow_can_retrieve_batch_and_allocate_to_it(session_factory):
-    session = session_factory()
+def test_uow_can_retrieve_batch_and_allocate_to_it(sqlite_session_factory):
+    session = sqlite_session_factory()
     insert_batch(session, "b1", "WORKBENCH", 100, "2000-01-01")
     session.commit()
 
-    uow = unit_of_work.SqlAlchemyUnitOfWork(session_factory)
+    uow = unit_of_work.SqlAlchemyUnitOfWork(sqlite_session_factory)
     with uow:
         batch = uow.batches.get(reference="b1")
         line = model.OrderLine("o1", "WORKBENCH", 10)
@@ -37,3 +38,30 @@ def test_uow_can_retrieve_batch_and_allocate_to_it(session_factory):
 
     batchref = get_batchref_allocated_to(session, "o1", "WORKBENCH")
     assert batchref == "b1"
+
+
+def test_uow_rolls_back_uncommitted_work_by_default(sqlite_session_factory):
+    uow = unit_of_work.SqlAlchemyUnitOfWork(sqlite_session_factory)
+    with uow:
+        uow.batches.add(model.Batch("b1", "WORKBENCH", 10, None))
+
+    new_session = sqlite_session_factory()
+
+    assert list(new_session.execute("SELECT * FROM batches")) == []
+
+
+def test_uow_rolls_back_on_error(sqlite_session_factory):
+    class MyException(Exception):
+        pass
+
+    uow = unit_of_work.SqlAlchemyUnitOfWork(sqlite_session_factory)
+
+    with pytest.raises(MyException):
+        with uow:
+            uow.batches.add(model.Batch("b1", "WORKBENCH", 10, None))
+            raise MyException()
+            uow.commit()
+
+    new_session = sqlite_session_factory()
+
+    assert list(new_session.execute("SELECT * FROM batches")) == []

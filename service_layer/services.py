@@ -1,9 +1,8 @@
 from typing import Optional
 from datetime import date
 
-import domain.model as model
-import adapters.repository as repository
-import service_layer.unit_of_work as unit_of_work
+from domain import model
+from service_layer import unit_of_work
 
 
 def is_valid_sku(sku, batches):

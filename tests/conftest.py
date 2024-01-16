@@ -48,7 +48,7 @@ def postgres_db():
 
 
 @pytest.fixture
-def session_factory(in_memory_db):
+def sqlite_session_factory(in_memory_db):
     start_mappers()
     yield sessionmaker(bind=in_memory_db)
     clear_mappers()

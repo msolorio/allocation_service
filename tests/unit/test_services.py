@@ -1,14 +1,36 @@
 import pytest
-import service_layer.services as services
-from service_layer.unit_of_work import FakeUnitOfWork
+from typing import List
+import domain.model as model
+from service_layer import services
+from adapters.repository import AbstractRepository
+from service_layer.unit_of_work import AbstractUnitOfWork
 from tests.helpers import random_sku, random_batchref
 
 
-class FakeSession:
-    commited = False
+class FakeRepository(AbstractRepository):
+    def __init__(self, batches: List[model.Batch]):
+        self._batches = set(batches)
+
+    def add(self, batch: model.Batch):
+        self._batches.add(batch)
+
+    def get(self, reference: model.Reference) -> model.Batch:
+        return next((b for b in self._batches if b.reference == reference), None)
+
+    def list(self) -> List[model.Batch]:
+        return list(self._batches)
+
+
+class FakeUnitOfWork(AbstractUnitOfWork):
+    def __init__(self):
+        self.batches = FakeRepository([])
+        self.commited = False
 
     def commit(self):
         self.commited = True
+
+    def rollback(self):
+        pass
 
 
 def test_add_batch():

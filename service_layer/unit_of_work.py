@@ -1,10 +1,8 @@
 import abc
-from typing import List
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 import config
-import adapters.repository as repository
-import domain.model as model
+from adapters import repository
 
 
 class AbstractUnitOfWork(abc.ABC):
@@ -46,15 +44,3 @@ class SqlAlchemyUnitOfWork(AbstractUnitOfWork):
 
     def rollback(self):
         self.session.rollback()
-
-
-class FakeUnitOfWork(AbstractUnitOfWork):
-    def __init__(self):
-        self.batches = repository.FakeRepository([])
-        self.commited = False
-
-    def commit(self):
-        self.commited = True
-
-    def rollback(self):
-        pass
