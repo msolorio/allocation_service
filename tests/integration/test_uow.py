@@ -1,13 +1,13 @@
-import pytest
+import pytest, time, traceback, threading
 from service_layer import unit_of_work
 from domain import model
-from tests.helpers import random_sku, random_orderid
+from tests.helpers import random_sku, random_orderid, random_batchref
 
 
-def insert_batch(session, ref, sku, qty, eta):
+def insert_batch(session, ref, sku, qty, eta, product_version=1):
     session.execute(
-        "INSERT INTO products (sku) VALUES (:sku)",
-        dict(sku=sku),
+        "INSERT INTO products (sku, version_number) VALUES (:sku, :version_number)",
+        dict(sku=sku, version_number=product_version),
     )
 
     session.execute(
@@ -74,3 +74,52 @@ def test_uow_rolls_back_on_error(sqlite_session_factory):
     new_session = sqlite_session_factory()
 
     assert list(new_session.execute("SELECT * FROM products")) == []
+
+
+def try_to_allocate(orderid, sku, exceptions):
+    line = model.OrderLine(orderid, sku, 10)
+    try:
+        with unit_of_work.SqlAlchemyUnitOfWork() as uow:
+            product = uow.products.get(sku=sku)
+            product.allocate(line)
+            time.sleep(0.2)
+            uow.commit()
+    except Exception as e:
+        print(traceback.format_exc())
+        exceptions.append(e)
+
+
+def test_concurrent_updates_to_version_are_not_allowed(postgres_session):
+    sku = random_sku()
+    batchref = random_batchref()
+    insert_batch(postgres_session, batchref, sku, 100, "2000-01-01", product_version=4)
+    postgres_session.commit()
+
+    order1, order2 = "order1", "order2"
+    exceptions = []
+    try_to_allocate_order1 = lambda: try_to_allocate(order1, sku, exceptions)
+    try_to_allocate_order2 = lambda: try_to_allocate(order2, sku, exceptions)
+    thread1 = threading.Thread(target=try_to_allocate_order1)
+    thread2 = threading.Thread(target=try_to_allocate_order2)
+    thread1.start()
+    thread2.start()
+    thread1.join()
+    thread2.join()
+
+    [[product_version]] = postgres_session.execute(
+        "SELECT version_number FROM products where sku=:sku",
+        dict(sku=sku),
+    )
+
+    allocations = list(
+        postgres_session.execute(
+            "SELECT b.reference FROM batches AS b "
+            "FULL JOIN allocations AS a "
+            "ON b.id = a.batch_id "
+            "WHERE b.reference = :batchref",
+            dict(batchref=batchref),
+        )
+    )
+
+    assert product_version == 5
+    assert len(allocations) == 1

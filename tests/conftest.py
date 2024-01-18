@@ -55,17 +55,22 @@ def sqlite_session_factory(in_memory_db):
 
 
 @pytest.fixture
-def postgres_session(postgres_db):
+def postgres_session_factory(postgres_db):
     start_mappers()
-    session = sessionmaker(bind=postgres_db)()
+    yield sessionmaker(bind=postgres_db)
+    clear_mappers()
+
+
+@pytest.fixture
+def postgres_session(postgres_session_factory):
+    session = postgres_session_factory()
 
     yield session
-
-    clear_mappers()
 
     session.execute("DELETE FROM allocations WHERE true")
     session.execute("DELETE FROM batches WHERE true")
     session.execute("DELETE FROM order_lines WHERE true")
+    session.execute("DELETE FROM products WHERE true")
     session.commit()
 
 
