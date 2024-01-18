@@ -79,7 +79,7 @@ class Product:
         self.batches = batches
         self.version_number = version_number
 
-    def allocate(self, line: OrderLine):
+    def allocate(self, line: OrderLine) -> Reference:
         try:
             batch = next(b for b in sorted(self.batches) if b.can_allocate(line))
             batch.allocate(line)

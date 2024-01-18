@@ -4,17 +4,15 @@ import adapters.repository as repository
 
 
 def test_repository_can_save_batch(session):
-    batch = model.Batch("batch-ref", "BLUE-CHAIR", 10, eta=None)
-    repo = repository.SqlAlchemyRepository(session)
+    # batch = model.Batch("batch-ref", "BLUE-CHAIR", 10, eta=None)
+    repo = repository.SqlAlchemyProductsRepository(session)
 
-    repo.add(batch)
+    repo.add(model.Product(sku="DESK", batches=[]))
     session.commit()
 
-    rows = list(
-        session.execute("SELECT reference, sku, _purchased_quantity, eta FROM batches")
-    )
+    rows = list(session.execute("SELECT sku, version_number FROM products"))
 
-    assert rows == [("batch-ref", "BLUE-CHAIR", 10, None)]
+    assert rows == [("DESK", 0)]
 
 
 def insert_order_line(session):
@@ -42,6 +40,10 @@ def insert_batch(session):
     return batch_id
 
 
+def insert_product(session):
+    session.execute("INSERT INTO products (sku) VALUES ('BLACK-CHAIR')")
+
+
 def insert_allocation(session, orderline_id, batch_id):
     session.execute(
         f"INSERT INTO allocations (orderline_id, batch_id) VALUES ({orderline_id}, {batch_id})"
@@ -49,17 +51,21 @@ def insert_allocation(session, orderline_id, batch_id):
 
 
 def test_repository_can_retrieve_batch_with_allocations(session):
+    insert_product(session)
     orderline_id = insert_order_line(session)
     batch_id = insert_batch(session)
     insert_allocation(session, orderline_id, batch_id)
 
-    repo = repository.SqlAlchemyRepository(session)
+    repo = repository.SqlAlchemyProductsRepository(session)
     # get batch with repo
-    batch = repo.get("batch1")
+    product = repo.get("BLACK-CHAIR")
+
     # test that it has correct properties with allocations
     expected_batch = model.Batch("batch1", "BLACK-CHAIR", 15, eta=date(2023, 1, 1))
-    assert batch == expected_batch  # Batch.__eq__ only compares references
-    assert batch.sku == expected_batch.sku
-    assert batch._purchased_quantity == expected_batch._purchased_quantity
-    assert batch.eta == expected_batch.eta
-    assert batch._allocations == {model.OrderLine("order1", "BLACK-CHAIR", 15)}
+    assert product.batches[0] == expected_batch  # Batch.__eq__ only compares references
+    assert product.batches[0].sku == expected_batch.sku
+    assert product.batches[0]._purchased_quantity == expected_batch._purchased_quantity
+    assert product.batches[0].eta == expected_batch.eta
+    assert product.batches[0]._allocations == {
+        model.OrderLine("order1", "BLACK-CHAIR", 15)
+    }

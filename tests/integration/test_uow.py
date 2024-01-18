@@ -1,9 +1,15 @@
 import pytest
 from service_layer import unit_of_work
 from domain import model
+from tests.helpers import random_sku, random_orderid
 
 
 def insert_batch(session, ref, sku, qty, eta):
+    session.execute(
+        "INSERT INTO products (sku) VALUES (:sku)",
+        dict(sku=sku),
+    )
+
     session.execute(
         "INSERT INTO batches (reference, sku, _purchased_quantity, eta) "
         "VALUES (:ref, :sku, :qty, :eta)",
@@ -24,30 +30,33 @@ def get_batchref_allocated_to(session, orderid, sku):
     return batchref
 
 
-def test_uow_can_retrieve_batch_and_allocate_to_it(sqlite_session_factory):
+def test_uow_can_retrieve_batch_and_allocate_to_it(
+    sqlite_session_factory,
+):
     session = sqlite_session_factory()
-    insert_batch(session, "b1", "WORKBENCH", 100, "2000-01-01")
+    sku, orderid = random_sku(), random_orderid()
+    insert_batch(session, "b1", sku, 100, "2000-01-01")
     session.commit()
 
     uow = unit_of_work.SqlAlchemyUnitOfWork(sqlite_session_factory)
     with uow:
-        batch = uow.batches.get(reference="b1")
-        line = model.OrderLine("o1", "WORKBENCH", 10)
-        batch.allocate(line)
+        product = uow.products.get(sku=sku)
+        line = model.OrderLine(orderid, sku, 10)
+        product.allocate(line)
         uow.commit()
 
-    batchref = get_batchref_allocated_to(session, "o1", "WORKBENCH")
+    batchref = get_batchref_allocated_to(session, orderid, sku)
     assert batchref == "b1"
 
 
 def test_uow_rolls_back_uncommitted_work_by_default(sqlite_session_factory):
     uow = unit_of_work.SqlAlchemyUnitOfWork(sqlite_session_factory)
     with uow:
-        uow.batches.add(model.Batch("b1", "WORKBENCH", 10, None))
+        uow.products.add(model.Product(sku="WORKBENCH", batches=[]))
 
     new_session = sqlite_session_factory()
 
-    assert list(new_session.execute("SELECT * FROM batches")) == []
+    assert list(new_session.execute("SELECT * FROM products")) == []
 
 
 def test_uow_rolls_back_on_error(sqlite_session_factory):
@@ -58,10 +67,10 @@ def test_uow_rolls_back_on_error(sqlite_session_factory):
 
     with pytest.raises(MyException):
         with uow:
-            uow.batches.add(model.Batch("b1", "WORKBENCH", 10, None))
+            uow.products.add(model.Product(sku="LAMP", batches=[]))
             raise MyException()
             uow.commit()
 
     new_session = sqlite_session_factory()
 
-    assert list(new_session.execute("SELECT * FROM batches")) == []
+    assert list(new_session.execute("SELECT * FROM products")) == []
