@@ -1,6 +1,6 @@
 import pytest
 
-from domain.model import Batch, OrderLine, allocate, OutOfStock
+from allocation.domain.model import Batch, OrderLine, allocate, OutOfStock
 from datetime import date, timedelta
 
 today = date.today()

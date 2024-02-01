@@ -12,4 +12,9 @@ def get_postgres_uri():
 def get_api_url():
     host = os.environ.get("API_HOST", "localhost")
     port = 5005 if host == "localhost" else 80
+
+    print("host ========", host)
+    print("port ========", port)
+
     return f"http://{host}:{port}"
+    # return f"http://{host}:80"

@@ -1,6 +1,6 @@
 import pytest, time, traceback, threading
-from service_layer import unit_of_work
-from domain import model
+from allocation.service_layer import unit_of_work
+from allocation.domain import model
 from tests.helpers import random_sku, random_orderid, random_batchref
 
 
@@ -23,7 +23,7 @@ def get_batchref_allocated_to(session, orderid, sku):
         dict(orderid=orderid, sku=sku),
     )
     [[batchref]] = session.execute(
-        "SELECT b.reference FROM allocations JOIN batches AS b ON batch_id = b.id "
+        "SELECT b.reference from allocations JOIN batches AS b ON batch_id = b.id "
         "WHERE orderline_id=:orderline_id",
         dict(orderline_id=orderline_id),
     )

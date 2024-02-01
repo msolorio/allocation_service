@@ -1,8 +1,8 @@
 import abc
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
-import config
-from adapters import repository
+from allocation import config
+from allocation.adapters import repository
 
 
 class AbstractUnitOfWork(abc.ABC):

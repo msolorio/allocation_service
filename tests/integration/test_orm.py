@@ -1,4 +1,4 @@
-import domain.model as model
+from allocation.domain import model
 from datetime import date
 
 
@@ -68,7 +68,7 @@ def test_allocations_mapper_can_save_allocations(session):
     session.add(batch)
     session.commit()
 
-    rows = list(session.execute("SELECT orderline_id, batch_id FROM allocations"))
+    rows = list(session.execute("SELECT orderline_id, batch_id from allocations"))
 
     assert rows == [(order_line.id, batch.id)]
 

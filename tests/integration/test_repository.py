@@ -1,6 +1,6 @@
 from datetime import date
-import domain.model as model
-import adapters.repository as repository
+from allocation.domain import model
+from allocation.adapters import repository
 
 
 def test_repository_can_save_batch(session):

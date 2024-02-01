@@ -1,6 +1,6 @@
 from typing import List
 import abc
-import domain.model as model
+from allocation.domain import model
 
 
 class AbstractRepository(abc.ABC):

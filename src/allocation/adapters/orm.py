@@ -1,7 +1,7 @@
 from sqlalchemy import Table, MetaData, Column, Integer, String, Date, ForeignKey
 from sqlalchemy.orm import mapper, relationship
 
-import domain.model as model
+from allocation.domain import model
 
 metadata = MetaData()  # a collection where python references the tables get stored
 

@@ -16,9 +16,18 @@ down:
 logs:
 	docker-compose logs app | tail -100
 
-.PHONY: test
-test:
-	pytest --tb=short
+test: up
+	docker-compose run --rm --no-deps --entrypoint=pytest app /tests/unit /tests/integration /tests/e2e
+
+
+unit-tests:
+	docker-compose run --rm --no-deps --entrypoint=pytest app /tests/unit
+
+integration-tests: up
+	docker-compose run --rm --no-deps --entrypoint=pytest app /tests/integration
+
+e2e-tests: up
+	docker-compose run --rm --no-deps --entrypoint=pytest app /tests/e2e
 
 black:
 	black -l 86 $$(find * -name '*.py')

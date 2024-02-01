@@ -1,6 +1,6 @@
 import pytest
 from datetime import date, timedelta
-from domain.model import Batch, OrderLine, Product, OutOfStock
+from allocation.domain.model import Batch, OrderLine, Product, OutOfStock
 from tests.helpers import random_sku
 
 today = date.today()

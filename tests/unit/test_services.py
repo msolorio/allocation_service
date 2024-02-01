@@ -1,9 +1,9 @@
 import pytest
 from typing import List
-import domain.model as model
-from service_layer import services
-from adapters.repository import AbstractRepository
-from service_layer.unit_of_work import AbstractUnitOfWork
+from allocation.domain import model
+from allocation.service_layer import services
+from allocation.adapters.repository import AbstractRepository
+from allocation.service_layer.unit_of_work import AbstractUnitOfWork
 from tests.helpers import random_sku, random_batchref
 
 

@@ -7,8 +7,8 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, clear_mappers
 
-import config
-from adapters.orm import metadata, start_mappers
+from allocation.adapters.orm import metadata, start_mappers
+from allocation import config
 
 
 def wait_for_webapp_to_come_up():
@@ -67,7 +67,7 @@ def postgres_session(postgres_session_factory):
 
     yield session
 
-    session.execute("DELETE FROM allocations WHERE true")
+    session.execute("DELETE from allocations WHERE true")
     session.execute("DELETE FROM batches WHERE true")
     session.execute("DELETE FROM order_lines WHERE true")
     session.execute("DELETE FROM products WHERE true")
@@ -83,6 +83,6 @@ def session(in_memory_db):
 
 @pytest.fixture
 def restart_api():
-    (Path(__file__).parent / "../entrypoints/flask_app.py").touch()
+    (Path(__file__).parent / "../src/allocation/entrypoints/flask_app.py").touch()
     time.sleep(0.5)
     wait_for_webapp_to_come_up()
