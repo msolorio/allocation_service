@@ -1,5 +1,23 @@
+from datetime import date
+from typing import Optional
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class OrderLine:
+    orderid: str
+    sku: str
+    qty: int
+
+
 class Batch:
-    def __init__(self, batch_ref, sku, qty):
+    def __init__(
+        self,
+        batch_ref: str,
+        sku: str,
+        qty: int,
+        eta: Optional[date] = None,
+    ):
         self.batch_ref = batch_ref
         self.sku = sku
         self.initial_quantity = qty
@@ -9,8 +27,12 @@ class Batch:
         if self.can_allocate(line) and line not in self._allocations:
             self._allocations.add(line)
 
+    def deallocate(self, line):
+        if line in self._allocations:
+            self._allocations.remove(line)
+
     def can_allocate(self, line):
-        return self.available_quantity >= line.qty
+        return self.sku == line.sku and self.available_quantity >= line.qty
 
     @property
     def allocated_quantity(self):
@@ -19,10 +41,3 @@ class Batch:
     @property
     def available_quantity(self):
         return self.initial_quantity - self.allocated_quantity
-
-
-class OrderLine:
-    def __init__(self, orderid, sku, qty):
-        self.orderid = orderid
-        self.sku = sku
-        self.qty = qty
