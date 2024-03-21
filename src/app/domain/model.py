@@ -26,6 +26,7 @@ class Batch:
         self.batch_ref = batch_ref
         self.sku = sku
         self.initial_quantity = qty
+        self.eta = eta
         self._allocations = set()
 
     def allocate(self, line: OrderLine):
@@ -46,3 +47,24 @@ class Batch:
     @property
     def available_quantity(self) -> Quantity:
         return self.initial_quantity - self.allocated_quantity
+
+    def __eq__(self, other):
+        if not isinstance(other, Batch):
+            return False
+        return other.batch_ref == self.batch_ref
+
+    def __gt__(self, other):
+        if not isinstance(other, Batch):
+            raise TypeError("Cannot compare Batch with non-Batch type")
+        if self.eta is None:
+            return False
+        if other.eta is None:
+            return True
+        return self.eta > other.eta
+
+
+def allocate(line: OrderLine, batches: list[Batch]):
+    batch = next(b for b in sorted(batches) if b.can_allocate(line))
+    batch.allocate(line)
+
+    return batch.batch_ref
