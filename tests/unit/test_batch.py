@@ -36,7 +36,7 @@ def test_can_allocate_if_avaiable_quantity_is_equal_to_line_quantity():
     assert batch.available_quantity == 0
 
 
-def test_cannot_allocate_line_to_batch_more_than_once():
+def test_allocation_is_idempotent():
     batch, line = make_batch_and_line(sku="ELEGANT-LAMP", batch_qty=20, line_qty=2)
 
     batch.allocate(line)
