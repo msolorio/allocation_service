@@ -8,6 +8,10 @@ OrderId = NewType("OrderId", str)
 Sku = NewType("Sku", str)
 
 
+class OutOfStock(Exception):
+    pass
+
+
 @dataclass(frozen=True)
 class OrderLine:
     orderid: OrderId
@@ -53,6 +57,9 @@ class Batch:
             return False
         return other.batch_ref == self.batch_ref
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def __gt__(self, other):
         if not isinstance(other, Batch):
             raise TypeError("Cannot compare Batch with non-Batch type")
@@ -63,8 +70,10 @@ class Batch:
         return self.eta > other.eta
 
 
-def allocate(line: OrderLine, batches: list[Batch]):
-    batch = next(b for b in sorted(batches) if b.can_allocate(line))
-    batch.allocate(line)
-
-    return batch.batch_ref
+def allocate(line: OrderLine, batches: list[Batch]) -> str:
+    try:
+        batch = next(b for b in sorted(batches) if b.can_allocate(line))
+        batch.allocate(line)
+        return batch.batch_ref
+    except StopIteration:
+        raise OutOfStock(f"Out of stock for sku {line.sku}")
