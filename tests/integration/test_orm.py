@@ -54,3 +54,46 @@ def test_batch_mapper_save_batches(session):
         session.execute("SELECT batch_ref, sku, initial_quantity, eta FROM batches")
     )
     assert rows == [("batch1", "GENERIC-SOFA", 20, None)]
+
+
+def test_allocations_mapper_can_save_allocations(session):
+    line = OrderLine(orderid="order1", sku="DECORATIVE-TRINKET", qty=2)
+    batch = Batch(batch_ref="batch1", sku="DECORATIVE-TRINKET", qty=5)
+    session.add(line)
+    session.add(batch)
+    batch.allocate(line)
+    session.commit()
+
+    rows = list(session.execute("SELECT orderline_id, batch_id FROM allocations"))
+
+    assert rows == [(line.id, batch.id)]
+
+
+def test_allocations_mapper_can_load_allocatins(session):
+    sku = "DECORATIVE-TRINKET"
+    qty = 12
+    orderid = "order1"
+    batchref = "batch1"
+
+    session.execute(
+        "INSERT INTO order_lines (orderid, sku, qty) VALUES (:orderid, :sku, :qty)",
+        dict(orderid=orderid, sku=sku, qty=qty),
+    )
+    [[olid]] = session.execute(
+        "SELECT id FROM order_lines WHERE orderid=:orderid AND sku=:sku",
+        dict(orderid=orderid, sku=sku),
+    )
+    session.execute(
+        "INSERT INTO batches (batch_ref, sku, initial_quantity) VALUES (:batchref, :sku, :qty)",
+        dict(batchref=batchref, sku=sku, qty=qty),
+    )
+    [[bid]] = session.execute(
+        "SELECT id FROM batches WHERE batch_ref=:batch_ref", dict(batch_ref="batch1")
+    )
+    session.execute(
+        "INSERT INTO allocations (orderline_id, batch_id) VALUES (:olid, :bid)",
+        dict(olid=olid, bid=bid),
+    )
+
+    batch = session.query(Batch).filter_by(id=bid).first()
+    assert batch._allocations == {OrderLine(orderid=orderid, sku=sku, qty=qty)}
