@@ -65,7 +65,6 @@ def test_allocations_mapper_can_save_allocations(session):
     session.commit()
 
     rows = list(session.execute("SELECT orderline_id, batch_id FROM allocations"))
-
     assert rows == [(line.id, batch.id)]
 
 
@@ -74,7 +73,6 @@ def test_allocations_mapper_can_load_allocatins(session):
     qty = 12
     orderid = "order1"
     batchref = "batch1"
-
     session.execute(
         "INSERT INTO order_lines (orderid, sku, qty) VALUES (:orderid, :sku, :qty)",
         dict(orderid=orderid, sku=sku, qty=qty),
