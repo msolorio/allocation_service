@@ -56,3 +56,19 @@ def test_repository_can_retrieve_batch_with_allocations(session):
     assert result.initial_quantity == expected.initial_quantity
     assert result.eta == expected.eta
     assert result._allocations == {OrderLine("order1", "ADORABLE-SETTEE", 30)}
+
+
+def test_repository_can_retrieve_list_of_batches(session):
+    insert_batch(session, "batch1", "SKU_1", 100, None)
+    insert_batch(session, "batch2", "SKU_2", 200, None)
+    insert_batch(session, "batch3", "SKU_3", 300, None)
+
+    repo = repository.SqlAlchemyRepository(session)
+
+    result = repo.list()
+
+    assert result == [
+        Batch("batch1", "SKU_1", 100, None),
+        Batch("batch2", "SKU_2", 200, None),
+        Batch("batch3", "SKU_3", 300, None),
+    ]

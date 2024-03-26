@@ -10,3 +10,6 @@ class SqlAlchemyRepository:
 
     def get(self, batch_ref: str) -> Batch:
         return self.session.query(Batch).filter_by(batch_ref=batch_ref).one()
+
+    def list(self):
+        return self.session.query(Batch).all()
