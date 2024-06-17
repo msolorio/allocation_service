@@ -22,7 +22,7 @@ services:
   postgres:
     image: postgres:16.1
     environment:
-      - POSTGRES_USER=postgres
+      - POSTGRES_USER=allocation
       - POSTGRES_PASSWORD=abc123
     ports:
       - "54321:5432"
