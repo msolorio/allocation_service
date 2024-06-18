@@ -5,6 +5,7 @@ from sqlalchemy.orm import sessionmaker
 from app import config
 from app.adapters import orm, repository
 from app.domain import model
+from app.service_layer import services
 
 orm.start_mappers()
 db_engine = create_engine(config.get_postgres_uri())
@@ -24,20 +25,15 @@ def health():
 @app.route("/allocate", methods=["POST"])
 def allocate():
     session = get_session()
-    batches = repository.SqlAlchemyRepository(session).list()
+    repo = repository.SqlAlchemyRepository(session)
     line = model.OrderLine(
         orderid=request.json["orderid"],
         sku=request.json["sku"],
         qty=request.json["qty"],
     )
-
-    if not is_valid_sku(line.sku, batches):
-        return jsonify({"message": f"Invalid sku {line.sku}"}), 400
-
     try:
-        batch_ref = model.allocate(line, batches)
-    except model.OutOfStock as e:
+        batch_ref = services.allocate(line, repo, session)
+    except (model.OutOfStock, services.InvalidSku) as e:
         return jsonify({"message": str(e)}), 400
 
-    session.commit()
     return jsonify({"batchref": batch_ref}), 201

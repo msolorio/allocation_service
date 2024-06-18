@@ -57,6 +57,9 @@ class Batch:
             return False
         return other.batch_ref == self.batch_ref
 
+    def __hash__(self):
+        return hash(self.batch_ref)
+
     def __ne__(self, other):
         return not self.__eq__(other)
 
@@ -76,4 +79,4 @@ def allocate(line: OrderLine, batches: list[Batch]) -> str:
         batch.allocate(line)
         return batch.batch_ref
     except StopIteration:
-        raise OutOfStock(f"Out of stock for sku {line.sku}")
+        raise OutOfStock(f"Out of stock for sku: {line.sku}")
