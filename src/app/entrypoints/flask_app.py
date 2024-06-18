@@ -12,6 +12,10 @@ get_session = sessionmaker(bind=db_engine)
 app = Flask(__name__)
 
 
+def is_valid_sku(sku, batches):
+    return sku in {b.sku for b in batches}
+
+
 @app.route("/health", methods=["GET"])
 def health():
     return "OK", 200
@@ -27,6 +31,13 @@ def allocate():
         qty=request.json["qty"],
     )
 
-    batch_ref = model.allocate(line, batches)
+    if not is_valid_sku(line.sku, batches):
+        return jsonify({"message": f"Invalid sku {line.sku}"}), 400
 
-    return {"batchref": batch_ref}, 201
+    try:
+        batch_ref = model.allocate(line, batches)
+    except model.OutOfStock as e:
+        return jsonify({"message": str(e)}), 400
+
+    session.commit()
+    return jsonify({"batchref": batch_ref}), 201
