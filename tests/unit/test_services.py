@@ -32,6 +32,18 @@ class FakeRepository(AbstractRepository):
         return list(self.batches)
 
 
+def test_allocate_decrements_available_quantity_for_correct_batch():
+    sku1, sku2 = random_sku(), random_sku()
+    line = model.OrderLine("o1", sku1, 10)
+    batch1 = model.Batch("b1", sku1, 100, eta=None)
+    batch2 = model.Batch("b2", sku2, 100, eta=None)
+    repo = FakeRepository([batch2, batch1])
+    assert batch1.available_quantity == 100
+    services.allocate(line, repo, FakeSession())
+    assert batch1.available_quantity == 90
+    assert batch2.available_quantity == 100
+
+
 def test_allocate_returns_batchref_allocated_to():
     sku, batchref = random_sku(), random_batchref()
     line = model.OrderLine(orderid="o1", sku=sku, qty=10)
@@ -57,5 +69,28 @@ def test_allocate_commits_session():
     repo = FakeRepository([batch])
     session = FakeSession()
     services.allocate(line, repo, session)
-
     assert session.committed
+
+
+def test_deallocate_increments_available_quantity_for_correct_batch():
+    sku1, sku2 = random_sku(), random_sku()
+    orderid = random_orderid()
+    line = model.OrderLine(orderid=orderid, sku=sku1, qty=10)
+    batch1 = model.Batch("b1", sku1, 100, eta=None)
+    batch2 = model.Batch("b2", sku2, 100, eta=None)
+
+    repo = FakeRepository([batch2, batch1])
+    session = FakeSession()
+    services.allocate(line, repo, session)
+    assert batch1.available_quantity == 90
+    services.deallocate(orderid, sku1, repo, session)
+    assert batch1.available_quantity == 100
+    assert batch2.available_quantity == 100
+
+
+def test_trying_to_deallocate_unallocated_batch():
+    sku = random_sku()
+    batch = model.Batch("b1", sku, 100, eta=None)
+    repo = FakeRepository([batch])
+    services.deallocate("o1", sku, repo, FakeSession())
+    assert batch.available_quantity == 100

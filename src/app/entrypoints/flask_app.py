@@ -22,7 +22,7 @@ def health():
     return "OK", 200
 
 
-@app.route("/allocate", methods=["POST"])
+@app.route("/allocation", methods=["POST"])
 def allocate():
     session = get_session()
     repo = repository.SqlAlchemyRepository(session)
@@ -37,3 +37,21 @@ def allocate():
         return jsonify({"message": str(e)}), 400
 
     return jsonify({"batchref": batch_ref}), 201
+
+
+@app.route("/allocation", methods=["DELETE"])
+def deallocate():
+    session = get_session()
+    repo = repository.SqlAlchemyRepository(session)
+
+    try:
+        services.deallocate(
+            orderid=request.json["orderid"],
+            sku=request.json["sku"],
+            repo=repo,
+            session=session,
+        )
+    except Exception as e:  # change this
+        return jsonify({"message": str(e)}), 400
+
+    return "OK", 204

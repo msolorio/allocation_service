@@ -60,7 +60,7 @@ def test_deallocate_line_from_batch():
     batch.allocate(line)
     assert batch.available_quantity == 18
 
-    batch.deallocate(line)
+    batch.deallocate(line.orderid, line.sku)
     assert batch.available_quantity == 20
 
 
@@ -69,6 +69,6 @@ def test_can_only_dealocate_allocated_lines():
         sku="ELEGANT-LAMP", batch_qty=20, line_qty=2
     )
 
-    batch.deallocate(unallocated_line)
+    batch.deallocate(unallocated_line.orderid, unallocated_line.sku)
 
     assert batch.available_quantity == 20

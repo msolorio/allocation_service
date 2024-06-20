@@ -37,9 +37,15 @@ class Batch:
         if self.can_allocate(line):
             self._allocations.add(line)
 
-    def deallocate(self, line: OrderLine):
-        if line in self._allocations:
-            self._allocations.remove(line)
+    def can_deallocated(self, orderid: str, sku: str) -> bool:
+        return orderid in {a.orderid for a in self._allocations} and self.sku == sku
+
+    def deallocate(self, orderid: str, sku: str):
+        if self.can_deallocated(orderid, sku):
+            for line in self._allocations:
+                if line.orderid == orderid:
+                    self._allocations.remove(line)
+                    return
 
     def can_allocate(self, line: OrderLine) -> bool:
         return self.sku == line.sku and self.available_quantity >= line.qty
@@ -80,3 +86,12 @@ def allocate(line: OrderLine, batches: list[Batch]) -> str:
         return batch.batch_ref
     except StopIteration:
         raise OutOfStock(f"Out of stock for sku: {line.sku}")
+
+
+def deallocate(orderid: str, sku: str, batches: list[Batch]) -> None:
+    batch = next(
+        (b for b in batches if b.can_deallocated(orderid, sku)),
+        None,
+    )
+    if batch is not None:
+        batch.deallocate(orderid, sku)
