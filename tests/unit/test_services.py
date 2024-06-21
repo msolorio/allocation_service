@@ -32,16 +32,29 @@ class FakeRepository(AbstractRepository):
         return list(self.batches)
 
 
-def test_allocate_decrements_available_quantity_for_correct_batch():
+def test_allocate_prefers_in_stock_over_shipment_batches():
     sku1, sku2 = random_sku(), random_sku()
     line = model.OrderLine("o1", sku1, 10)
     batch1 = model.Batch("b1", sku1, 100, eta=None)
-    batch2 = model.Batch("b2", sku2, 100, eta=None)
+    batch2 = model.Batch("b2", sku2, 100, eta=today)
     repo = FakeRepository([batch2, batch1])
     assert batch1.available_quantity == 100
     services.allocate(line, repo, FakeSession())
     assert batch1.available_quantity == 90
     assert batch2.available_quantity == 100
+
+
+def test_allocate_prefers_earlier_batches():
+    sku = random_sku()
+    line = model.OrderLine("o1", sku, 10)
+    earliest = model.Batch("speedy-batch", sku, 100, eta=today)
+    medium = model.Batch("normal-batch", sku, 100, eta=tomorrow)
+    latest = model.Batch("slow-batch", sku, 100, eta=later)
+    repo = FakeRepository([latest, medium, earliest])
+    services.allocate(line, repo, FakeSession())
+    assert earliest.available_quantity == 90
+    assert medium.available_quantity == 100
+    assert latest.available_quantity == 100
 
 
 def test_allocate_returns_batchref_allocated_to():
@@ -88,7 +101,7 @@ def test_deallocate_increments_available_quantity_for_correct_batch():
     assert batch2.available_quantity == 100
 
 
-def test_trying_to_deallocate_unallocated_batch():
+def test_cannot_deallocate_unallocated_line():
     sku = random_sku()
     batch = model.Batch("b1", sku, 100, eta=None)
     repo = FakeRepository([batch])
