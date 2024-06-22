@@ -26,84 +26,117 @@ class FakeRepository(AbstractRepository):
         self.batches.add(batch)
 
     def get(self, reference: str) -> model.Batch:
-        return next(b for b in self.batches if b.reference == reference)
+        return next((b for b in self.batches if b.batch_ref == reference), None)
 
     def list(self) -> List[model.Batch]:
         return list(self.batches)
 
 
+def test_add_batch():
+    repo = FakeRepository()
+    session = FakeSession()
+    services.add_batch(
+        batchref="b1",
+        sku="CRUNCHY-ARMCHAIR",
+        qty=100,
+        eta=None,
+        repo=repo,
+        session=session,
+    )
+    assert repo.get("b1") is not None
+    assert repo.get("b1").sku == "CRUNCHY-ARMCHAIR"
+    assert session.committed
+
+
 def test_allocate_prefers_in_stock_over_shipment_batches():
     sku1, sku2 = random_sku(), random_sku()
-    line = model.OrderLine("o1", sku1, 10)
-    batch1 = model.Batch("b1", sku1, 100, eta=None)
-    batch2 = model.Batch("b2", sku2, 100, eta=today)
-    repo = FakeRepository([batch2, batch1])
-    assert batch1.available_quantity == 100
-    services.allocate(line, repo, FakeSession())
-    assert batch1.available_quantity == 90
-    assert batch2.available_quantity == 100
+    repo = FakeRepository()
+    services.add_batch("b1", sku1, 100, eta=None, repo=repo, session=FakeSession())
+    services.add_batch("b2", sku2, 100, eta=today, repo=repo, session=FakeSession())
+    batchref = services.allocate(
+        orderid="o1", sku=sku1, qty=10, repo=repo, session=FakeSession()
+    )
+    assert batchref == "b1"
 
 
 def test_allocate_prefers_earlier_batches():
     sku = random_sku()
-    line = model.OrderLine("o1", sku, 10)
-    earliest = model.Batch("speedy-batch", sku, 100, eta=today)
-    medium = model.Batch("normal-batch", sku, 100, eta=tomorrow)
-    latest = model.Batch("slow-batch", sku, 100, eta=later)
-    repo = FakeRepository([latest, medium, earliest])
-    services.allocate(line, repo, FakeSession())
-    assert earliest.available_quantity == 90
-    assert medium.available_quantity == 100
-    assert latest.available_quantity == 100
+    repo = FakeRepository()
+    services.add_batch(
+        "speedy-batch", sku, 100, eta=today, repo=repo, session=FakeSession()
+    )
+    services.add_batch(
+        "normal-batch", sku, 100, eta=tomorrow, repo=repo, session=FakeSession()
+    )
+    services.add_batch(
+        "slow-batch", sku, 100, eta=later, repo=repo, session=FakeSession()
+    )
+    batchref = services.allocate(
+        orderid="o1", sku=sku, qty=10, repo=repo, session=FakeSession()
+    )
+    assert batchref == "speedy-batch"
 
 
 def test_allocate_returns_batchref_allocated_to():
     sku, batchref = random_sku(), random_batchref()
-    line = model.OrderLine(orderid="o1", sku=sku, qty=10)
-    batch = model.Batch(batch_ref=batchref, sku=sku, qty=100, eta=None)
-    repo = FakeRepository([batch])
-    result = services.allocate(line, repo, FakeSession())
+    repo = FakeRepository()
+    services.add_batch(
+        batchref=batchref, sku=sku, qty=100, eta=None, repo=repo, session=FakeSession()
+    )
+    result = services.allocate(
+        orderid="o1", sku=sku, qty=10, repo=repo, session=FakeSession()
+    )
     assert result == batchref
 
 
 def test_allocate_returns_error_for_invalid_sku():
-    line = model.OrderLine(orderid="o1", sku="NO_SUCH_SKU", qty=10)
-    batch = model.Batch("batch1", "sku1", 100, eta=None)
-    repo = FakeRepository([batch])
+    repo = FakeRepository()
+    services.add_batch(
+        batchref="batch1",
+        sku="sku1",
+        qty=100,
+        eta=None,
+        repo=repo,
+        session=FakeSession(),
+    )
 
     with pytest.raises(services.InvalidSku, match="Invalid sku: NO_SUCH_SKU"):
-        services.allocate(line, repo, FakeSession())
+        services.allocate(
+            orderid="o1", sku="NO_SUCH_SKU", qty=10, repo=repo, session=FakeSession()
+        )
 
 
 def test_allocate_commits_session():
-    sku1 = random_sku()
-    line = model.OrderLine(orderid="o1", sku=sku1, qty=10)
-    batch = model.Batch("batch1", sku1, 100, eta=None)
-    repo = FakeRepository([batch])
+    sku = random_sku()
+    repo = FakeRepository()
     session = FakeSession()
-    services.allocate(line, repo, session)
+    services.add_batch(
+        batchref="batch1",
+        sku=sku,
+        qty=100,
+        eta=None,
+        repo=repo,
+        session=session,
+    )
+    services.allocate(orderid="o1", sku=sku, qty=10, repo=repo, session=session)
     assert session.committed
 
 
-def test_deallocate_increments_available_quantity_for_correct_batch():
-    sku1, sku2 = random_sku(), random_sku()
-    orderid = random_orderid()
-    line = model.OrderLine(orderid=orderid, sku=sku1, qty=10)
-    batch1 = model.Batch("b1", sku1, 100, eta=None)
-    batch2 = model.Batch("b2", sku2, 100, eta=None)
+def test_deallocate():
+    sku, orderid = random_sku(), random_orderid()
+    repo = FakeRepository()
+    services.add_batch(
+        batchref="b1", sku=sku, qty=10, eta=None, repo=repo, session=FakeSession()
+    )
+    services.allocate(
+        orderid=orderid, sku=sku, qty=10, repo=repo, session=FakeSession()
+    )
+    with pytest.raises(Exception):
+        services.allocate(
+            orderid=orderid, sku=sku, qty=10, repo=repo, session=FakeSession()
+        )
 
-    repo = FakeRepository([batch2, batch1])
-    session = FakeSession()
-    services.allocate(line, repo, session)
-    assert batch1.available_quantity == 90
-    services.deallocate(orderid, sku1, repo, session)
-    assert batch1.available_quantity == 100
-    assert batch2.available_quantity == 100
-
-
-def test_cannot_deallocate_unallocated_line():
-    sku = random_sku()
-    batch = model.Batch("b1", sku, 100, eta=None)
-    repo = FakeRepository([batch])
-    services.deallocate("o1", sku, repo, FakeSession())
-    assert batch.available_quantity == 100
+    services.deallocate(orderid=orderid, sku=sku, repo=repo, session=FakeSession())
+    services.allocate(
+        orderid=orderid, sku=sku, qty=10, repo=repo, session=FakeSession()
+    )

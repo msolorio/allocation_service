@@ -25,14 +25,14 @@ def health():
 @app.route("/allocation", methods=["POST"])
 def allocate():
     session = get_session()
-    repo = repository.SqlAlchemyRepository(session)
-    line = model.OrderLine(
-        orderid=request.json["orderid"],
-        sku=request.json["sku"],
-        qty=request.json["qty"],
-    )
     try:
-        batch_ref = services.allocate(line, repo, session)
+        batch_ref = services.allocate(
+            orderid=request.json["orderid"],
+            sku=request.json["sku"],
+            qty=request.json["qty"],
+            repo=repository.SqlAlchemyRepository(session),
+            session=session,
+        )
     except (model.OutOfStock, services.InvalidSku) as e:
         return jsonify({"message": str(e)}), 400
 
