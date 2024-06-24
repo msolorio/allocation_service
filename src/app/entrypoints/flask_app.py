@@ -43,15 +43,28 @@ def allocate():
 def deallocate():
     session = get_session()
     repo = repository.SqlAlchemyRepository(session)
-
-    try:
-        services.deallocate(
-            orderid=request.json["orderid"],
-            sku=request.json["sku"],
-            repo=repo,
-            session=session,
-        )
-    except Exception as e:  # change this
-        return jsonify({"message": str(e)}), 400
-
+    services.deallocate(
+        orderid=request.json["orderid"],
+        sku=request.json["sku"],
+        repo=repo,
+        session=session,
+    )
     return "OK", 204
+
+
+@app.route("/batch", methods=["POST"])
+def add_batch():
+    session = get_session()
+    repo = repository.SqlAlchemyRepository(session)
+    eta = request.json["eta"]
+    if eta is not None:
+        eta = datetime.fromisoformat(eta)
+    services.add_batch(
+        batchref=request.json["batchref"],
+        sku=request.json["sku"],
+        qty=request.json["qty"],
+        eta=eta,
+        repo=repo,
+        session=session,
+    )
+    return "OK", 201

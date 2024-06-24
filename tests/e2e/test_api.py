@@ -11,6 +11,13 @@ tomorrow = today + timedelta(days=1)
 later = tomorrow + timedelta(days=10)
 
 
+def add_batch(batchref, sku, qty, eta):
+    url = config.get_api_url()
+    data = {"batchref": batchref, "sku": sku, "qty": qty, "eta": str(eta)}
+    r = requests.post(f"{url}/batch", json=data)
+    assert r.status_code == 201
+
+
 def test_app_running():
     url = config.get_api_url()
 
@@ -21,29 +28,24 @@ def test_app_running():
 
 
 @pytest.mark.usefixtures("restart_api")
-def test_allocate_returns_201_and_allocated_batchref(add_stock):
+def test_allocate_returns_201_and_allocated_batchref():
     sku1, sku2 = random_sku(), random_sku()
     batch1, batch2, batch3 = random_batchref(), random_batchref(), random_batchref()
     orderid = random_orderid()
-    add_stock(
-        [
-            (batch1, sku1, 100, today),
-            (batch2, sku1, 100, tomorrow),
-            (batch3, sku2, 100, later),
-        ]
-    )
+    add_batch(batch1, sku1, 100, today)
+    add_batch(batch2, sku1, 100, tomorrow)
+    add_batch(batch3, sku2, 100, later)
     data = {"orderid": orderid, "sku": sku1, "qty": 10}
     url = config.get_api_url()
     r = requests.post(f"{url}/allocation", json=data)
-
     assert r.status_code == 201
     assert r.json()["batchref"] == batch1
 
 
 @pytest.mark.usefixtures("restart_api")
-def test_allocate_unhappy_path_returns_400_and_error(add_stock):
+def test_allocate_unhappy_path_returns_400_and_error():
     sku, small_batch, large_order = random_sku(), random_batchref(), random_orderid()
-    add_stock([(small_batch, sku, 10, today)])
+    add_batch(small_batch, sku, 10, today)
     data = {"orderid": large_order, "sku": sku, "qty": 20}
     url = config.get_api_url()
     r = requests.post(f"{url}/allocation", json=data)
@@ -52,12 +54,12 @@ def test_allocate_unhappy_path_returns_400_and_error(add_stock):
 
 
 @pytest.mark.usefixtures("restart_api")
-def test_deallocate(add_stock):
+def test_deallocate():
     sku = random_sku()
     batchref = random_batchref()
     orderid1, orderid2 = random_orderid(), random_orderid()
     url = config.get_api_url()
-    add_stock([(batchref, sku, 100, today)])
+    add_batch(batchref, sku, 100, today)
     orderline1 = {"orderid": orderid1, "sku": sku, "qty": 100}
 
     r1 = requests.post(f"{url}/allocation", json=orderline1)
