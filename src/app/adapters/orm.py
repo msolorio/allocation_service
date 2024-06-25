@@ -1,6 +1,7 @@
+import time
 from sqlalchemy import MetaData, Table, Column, String, Integer, ForeignKey
 from sqlalchemy.orm import mapper, relationship
-
+from sqlalchemy.exc import OperationalError
 from app.domain.model import OrderLine, Batch
 
 metadata = MetaData()
@@ -46,3 +47,23 @@ def start_mappers():
             )
         },
     )
+
+
+def wait_for_db(engine):
+    deadline = time.time() + 10
+    while time.time() < deadline:
+        try:
+            return engine.connect()
+        except OperationalError:
+            time.sleep(0.5)
+    raise OperationalError("Database never came up")
+
+
+def create_tables(engine):
+    metadata.create_all(engine)
+
+
+def init(db_engine):
+    wait_for_db(db_engine)
+    create_tables(db_engine)
+    start_mappers()

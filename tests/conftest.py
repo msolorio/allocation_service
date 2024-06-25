@@ -3,7 +3,7 @@ from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, clear_mappers
 from sqlalchemy.exc import OperationalError
-from app.adapters.orm import metadata, start_mappers
+from app.adapters.orm import metadata, start_mappers, wait_for_db
 from app import config
 
 
@@ -25,20 +25,10 @@ def in_memory_db():
     return engine
 
 
-def wait_for_postgres_to_come_up(engine):
-    deadline = time.time() + 10
-    while time.time() < deadline:
-        try:
-            return engine.connect()
-        except OperationalError:
-            time.sleep(0.5)
-    pytest.fail("Postgres never came up")
-
-
 @pytest.fixture(scope="session")
 def postgres_db():
     engine = create_engine(config.get_postgres_uri())
-    wait_for_postgres_to_come_up(engine)
+    wait_for_db(engine)
     metadata.create_all(engine)
     return engine
 
@@ -47,6 +37,13 @@ def postgres_db():
 def session(in_memory_db):
     start_mappers()
     yield sessionmaker(bind=in_memory_db)()
+    clear_mappers()
+
+
+@pytest.fixture
+def session_factory(in_memory_db):
+    start_mappers()
+    yield sessionmaker(bind=in_memory_db)
     clear_mappers()
 
 
