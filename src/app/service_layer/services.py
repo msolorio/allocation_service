@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Optional
 from app.domain import model
-from app.adapters import repository
+from app.adapters import unit_of_work
 
 
 class InvalidSku(Exception):
@@ -16,27 +16,27 @@ def allocate(
     orderid: str,
     sku: str,
     qty: int,
-    repo: repository.AbstractRepository,
-    session,
+    uow: unit_of_work.AbstractUnitOfWork,
 ):
     line = model.OrderLine(orderid=orderid, sku=sku, qty=qty)
-    batches = repo.list()
-    if not is_valid_sku(line.sku, batches):
-        raise InvalidSku(f"Invalid sku: {line.sku}")
-    batch_ref = model.allocate(line, batches)
-    session.commit()
+    with uow:
+        batches = uow.batches.list()
+        if not is_valid_sku(line.sku, batches):
+            raise InvalidSku(f"Invalid sku: {line.sku}")
+        batch_ref = model.allocate(line, batches)
+        uow.commit()
     return batch_ref
 
 
 def deallocate(
     orderid: str,
     sku: str,
-    repo: repository.AbstractRepository,
-    session,
+    uow: unit_of_work.AbstractUnitOfWork,
 ):
-    batches = repo.list()
-    model.deallocate(orderid, sku, batches)
-    session.commit()
+    with uow:
+        batches = uow.batches.list()
+        model.deallocate(orderid, sku, batches)
+        uow.commit()
 
 
 def add_batch(
@@ -44,8 +44,8 @@ def add_batch(
     sku: str,
     qty: int,
     eta: Optional[date],
-    repo: repository.AbstractRepository,
-    session,
+    uow: unit_of_work.AbstractUnitOfWork,
 ):
-    repo.add(model.Batch(batch_ref=batchref, sku=sku, qty=qty, eta=eta))
-    session.commit()
+    with uow:
+        uow.batches.add(model.Batch(batch_ref=batchref, sku=sku, qty=qty, eta=eta))
+        uow.commit()
