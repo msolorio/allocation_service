@@ -28,18 +28,18 @@ DEFAULT_SESSION_FACTORY = sessionmaker(bind=create_engine(config.get_postgres_ur
 
 class SqlAlchemyUnitOfWork(AbstractUnitOfWork):
     def __init__(self, session_factory=DEFAULT_SESSION_FACTORY):
-        self.session_factory = session_factory
+        self._session_factory = session_factory
 
     def __enter__(self):
-        self.session = self.session_factory()
-        self.batches = repository.SqlAlchemyRepository(self.session)
+        self._session = self._session_factory()
+        self.batches = repository.SqlAlchemyRepository(self._session)
 
     def __exit__(self, *args):
         super().__exit__(*args)
-        self.session.close()
+        self._session.close()
 
     def rollback(self):
-        self.session.rollback()
+        self._session.rollback()
 
     def commit(self):
-        self.session.commit()
+        self._session.commit()

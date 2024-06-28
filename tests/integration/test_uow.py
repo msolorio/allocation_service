@@ -1,3 +1,4 @@
+import pytest
 from app.adapters import unit_of_work
 from app.domain import model
 from tests.helpers import random_batchref, random_sku
@@ -37,3 +38,28 @@ def test_uow_can_retrieve_batch_and_allocate_to_it(session_factory):
 
     batchref = get_allocated_batch_ref(session, "order1", sku)
     assert batchref == batch_ref
+
+
+def test_rolls_back_uncommited_work_by_default(session_factory):
+    uow = unit_of_work.SqlAlchemyUnitOfWork(session_factory)
+    with uow:
+        insert_batch(uow._session, "batch1", "WORKBENCH", 100, None)
+
+    new_session = session_factory()
+    rows = list(new_session.execute('SELECT * FROM "batches"'))
+    assert rows == []
+
+
+def test_rolls_back_on_error(session_factory):
+    class MyException(Exception):
+        pass
+
+    uow = unit_of_work.SqlAlchemyUnitOfWork(session_factory)
+    with pytest.raises(MyException):
+        with uow:
+            insert_batch(uow._session, "batch1", "LARGE-FORK", 100, None)
+            raise MyException()
+
+    new_session = session_factory()
+    rows = list(new_session.execute('SELECT * FROM "batches"'))
+    assert rows == []

@@ -12,13 +12,6 @@ tomorrow = today + timedelta(days=1)
 later = tomorrow + timedelta(days=10)
 
 
-class FakeSession:
-    committed = False
-
-    def commit(self):
-        self.committed = True
-
-
 class FakeRepository(AbstractRepository):
     def __init__(self, batches: List[model.Batch] = []):
         self.batches = set(batches)
@@ -113,12 +106,12 @@ def test_allocate_commits_session():
 
 
 def test_deallocate():
-    sku, orderid = random_sku(), random_orderid()
+    sku, orderid1, orderid2 = random_sku(), random_orderid(), random_orderid()
     uow = FakeUnitOfWork()
     services.add_batch(batchref="b1", sku=sku, qty=10, eta=None, uow=uow)
-    services.allocate(orderid=orderid, sku=sku, qty=10, uow=uow)
+    services.allocate(orderid=orderid1, sku=sku, qty=10, uow=uow)
     with pytest.raises(Exception):
-        services.allocate(orderid=orderid, sku=sku, qty=10, uow=uow)
+        services.allocate(orderid=orderid2, sku=sku, qty=10, uow=uow)
 
-    services.deallocate(orderid=orderid, sku=sku, uow=uow)
-    services.allocate(orderid=orderid, sku=sku, qty=10, uow=uow)
+    services.deallocate(orderid=orderid1, sku=sku, uow=uow)
+    services.allocate(orderid=orderid2, sku=sku, qty=10, uow=uow)
