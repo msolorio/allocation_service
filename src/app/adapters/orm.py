@@ -2,7 +2,7 @@ import time
 from sqlalchemy import MetaData, Table, Column, String, Integer, ForeignKey
 from sqlalchemy.orm import mapper, relationship
 from sqlalchemy.exc import OperationalError
-from app.domain.model import OrderLine, Batch
+from app.domain.model import OrderLine, Batch, Product
 
 metadata = MetaData()
 
@@ -20,7 +20,12 @@ batches = Table(
     metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
     Column("batch_ref", String(255), nullable=False),
-    Column("sku", String(255), nullable=False),
+    Column(
+        "sku",
+        String(255),
+        ForeignKey("products.sku"),
+        nullable=False,
+    ),
     Column("initial_quantity", Integer, nullable=False),
     Column("eta", String(255)),
 )
@@ -33,10 +38,16 @@ allocations = Table(
     Column("batch_id", Integer, ForeignKey("batches.id")),
 )
 
+product = Table(
+    "products",
+    metadata,
+    Column("sku", String(255), primary_key=True),
+)
+
 
 def start_mappers():
     lines_mapper = mapper(OrderLine, order_lines)
-    mapper(
+    batches_mapper = mapper(
         Batch,
         batches,
         properties={
@@ -47,6 +58,7 @@ def start_mappers():
             )
         },
     )
+    mapper(Product, product, properties={"batches": relationship(batches_mapper)})
 
 
 def wait_for_db(engine):

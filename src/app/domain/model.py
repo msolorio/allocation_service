@@ -79,19 +79,37 @@ class Batch:
         return self.eta > other.eta
 
 
-def allocate(line: OrderLine, batches: list[Batch]) -> str:
-    try:
-        batch = next(b for b in sorted(batches) if b.can_allocate(line))
-        batch.allocate(line)
-        return batch.batch_ref
-    except StopIteration:
-        raise OutOfStock(f"Out of stock for sku: {line.sku}")
+class Product:
+    def __init__(self, sku: Sku, batches: list[Batch]):
+        self.sku = sku
+        self.batches = batches
 
+    def allocate(self, line: OrderLine) -> str:
+        try:
+            batch = next(b for b in sorted(self.batches) if b.can_allocate(line))
+            batch.allocate(line)
+            return batch.batch_ref
+        except StopIteration:
+            raise OutOfStock(f"Out of stock for sku: {line.sku}")
 
-def deallocate(orderid: str, sku: str, batches: list[Batch]) -> None:
-    batch = next(
-        (b for b in batches if b.can_deallocated(orderid, sku)),
-        None,
-    )
-    if batch is not None:
-        batch.deallocate(orderid, sku)
+    def deallocate(self, orderid: str, sku: str) -> None:
+        batch = next(
+            (b for b in self.batches if b.can_deallocated(orderid, sku)),
+            None,
+        )
+        if batch is not None:
+            batch.deallocate(orderid, sku)
+
+    def add_batch(self, batch: Batch) -> None:
+        self.batches.append(batch)
+
+    def __eq__(self, other):
+        if not isinstance(other, Product):
+            return False
+        return other.sku == self.sku
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __hash__(self):
+        return hash(self.sku)

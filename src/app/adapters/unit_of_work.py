@@ -1,12 +1,16 @@
 import abc
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
-from app.adapters import repository
+
+from app.adapters.product_repository import (
+    AbstractProductRepository,
+    SqlAlchemyProductRepository,
+)
 from app import config
 
 
 class AbstractUnitOfWork(abc.ABC):
-    batches: repository.AbstractRepository
+    products: AbstractProductRepository
 
     def __enter__(self):
         pass
@@ -32,7 +36,8 @@ class SqlAlchemyUnitOfWork(AbstractUnitOfWork):
 
     def __enter__(self):
         self._session = self._session_factory()
-        self.batches = repository.SqlAlchemyRepository(self._session)
+        self.products = SqlAlchemyProductRepository(self._session)
+        super().__enter__()
 
     def __exit__(self, *args):
         super().__exit__(*args)

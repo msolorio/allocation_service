@@ -1,7 +1,7 @@
 import pytest
 from datetime import date
 
-from app.domain.model import OrderLine, Batch
+from app.domain.model import OrderLine, Batch, Product
 
 
 def test_orderline_mapper_can_load_lines(session):
@@ -95,3 +95,19 @@ def test_allocations_mapper_can_load_allocatins(session):
 
     batch = session.query(Batch).filter_by(id=bid).first()
     assert batch._allocations == {OrderLine(orderid=orderid, sku=sku, qty=qty)}
+
+
+def test_product_mapper_can_load_products(session):
+    session.execute("INSERT INTO products (sku) VALUES ('RED-CHAIR')")
+    expected = [Product(sku="RED-CHAIR", batches=[])]
+
+    assert session.query(Product).all() == expected
+
+
+def test_product_mapper_can_save_products(session):
+    new_product = Product(sku="BLUE-PLATE", batches=[])
+    session.add(new_product)
+    session.commit()
+
+    rows = list(session.execute("SELECT sku FROM products"))
+    assert rows == [("BLUE-PLATE",)]

@@ -20,10 +20,10 @@ def allocate(
 ):
     line = model.OrderLine(orderid=orderid, sku=sku, qty=qty)
     with uow:
-        batches = uow.batches.list()
-        if not is_valid_sku(line.sku, batches):
-            raise InvalidSku(f"Invalid sku: {line.sku}")
-        batch_ref = model.allocate(line, batches)
+        product = uow.products.get(sku=sku)
+        if product is None:
+            raise InvalidSku(f"Invalid sku: {sku}")
+        batch_ref = product.allocate(line)
         uow.commit()
     return batch_ref
 
@@ -34,9 +34,10 @@ def deallocate(
     uow: unit_of_work.AbstractUnitOfWork,
 ):
     with uow:
-        batches = uow.batches.list()
-        model.deallocate(orderid, sku, batches)
-        uow.commit()
+        product = uow.products.get(sku=sku)
+        if product is not None:
+            product.deallocate(orderid, sku)
+            uow.commit()
 
 
 def add_batch(
@@ -47,5 +48,9 @@ def add_batch(
     uow: unit_of_work.AbstractUnitOfWork,
 ):
     with uow:
-        uow.batches.add(model.Batch(batch_ref=batchref, sku=sku, qty=qty, eta=eta))
+        product = uow.products.get(sku=sku)
+        if product is None:
+            product = model.Product(sku, batches=[])
+            uow.products.add(product)
+        product.add_batch(model.Batch(batch_ref=batchref, sku=sku, qty=qty, eta=eta))
         uow.commit()
