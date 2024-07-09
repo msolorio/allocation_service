@@ -65,3 +65,16 @@ def psql_session(postgres_db):
     session.execute("DELETE FROM batches WHERE true")
     session.execute("DELETE FROM order_lines WHERE true")
     session.commit()
+
+
+@pytest.fixture
+def psql_session_factory(postgres_db):
+    start_mappers()
+    yield sessionmaker(bind=postgres_db)
+    clear_mappers()
+
+    session = sessionmaker(bind=postgres_db)()
+    session.execute("DELETE from allocations WHERE true")
+    session.execute("DELETE FROM batches WHERE true")
+    session.execute("DELETE FROM order_lines WHERE true")
+    session.commit()
